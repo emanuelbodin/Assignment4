@@ -26,6 +26,8 @@ typedef struct _particleBox
   double y;
 
   double mass;
+  double centerOfMassX;
+  double centerOfMassY;
 } particleBox;
 
 particle * read_particle(int N, FILE *fp1) {
@@ -66,7 +68,7 @@ void print_stars(particleBox *box) {
     print_stars((*box).sw);
 }
 
-particleBox fitParticle(particleBox** box, particle star){
+void fitParticle(particleBox** box, particle star){
   if(*box == NULL){
     printf("Adding node \n");
     particleBox *newBox = (particleBox*)malloc(sizeof(particleBox));
@@ -77,11 +79,13 @@ particleBox fitParticle(particleBox** box, particle star){
   if((**box).star == NULL){
     printf("Found parent node\n");
     (**box).mass += star.mass;
+    //(**box).centerOfMassX = abs((**box).centerOfMassX-star.posX)*0.5;
+    //(**box).centerOfMassY = abs((**box).centerOfMassX-star.posX)*0.5;
     printf("Star: x: %f y: %f\n", star.posX, star.posY);
     particleBox tempBox;
     if(star.posX <= (**box).x && star.posY > (**box).y){
       printf("nw\n");
-      tempBox = fitParticle(&(**box).nw, star);
+      tempBox = fitParticle(&(**box).nw, star);    
       (**box).nw = &tempBox;
       (tempBox).x = (**box).x*0.5;
       (tempBox).y = (**box).y*1.5;
@@ -115,7 +119,12 @@ particleBox fitParticle(particleBox** box, particle star){
     fitParticle(box, *oldStar);
     (**box).mass += star.mass;
   }
-  return **box;
+}
+
+particleBox calcForce(particle star, particleBox box){
+  if(box.star != NULL){
+    
+  }
 }
 
 // ./galsim 2 input/cicles_N_2.gal 500 1e-5 0.1 0
@@ -154,8 +163,11 @@ int main(int argc, char* argv[]){
   (*root).mass = 0;
   (*root).x = 0.5;
   (*root).y = 0.5;
-  
-  for(int i =0; i<2; i++){
+
+  (*root).centerOfMassX = 0.5;
+  (*root).centerOfMassY = 0.5;
+
+  for(int i =0; i<N; i++){
     fitParticle(&root, array[i]);
   }
   print_stars(root);
