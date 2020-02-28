@@ -25,7 +25,9 @@ typedef struct _particleBox
   double x;
   double y;
 
-  double mass;
+  int mass;
+  double centerOfMassX;
+  double centerOfMassY;
 } particleBox;
 
 particle * read_particle(int N, FILE *fp1) {
@@ -52,19 +54,13 @@ particle * read_particle(int N, FILE *fp1) {
   fclose(fp1);
   return array;
 }
-
-void print_stars(particleBox *box) {
+/*
+void print_starts(particleBox *box) {
   if (box == NULL) printf("No stars! \n");
-  if (box != NULL) printf("%f \n", (*box).mass);
-  if ((*box).ne != NULL)
-    print_stars((*box).ne);
-  if ((*box).nw != NULL)
-    print_stars((*box).nw);
-  if ((*box).se != NULL)
-    print_stars((*box).se);
-  if ((*box).sw != NULL)
-    print_stars((*box).sw);
-}
+  if (box != NULL) printf("%d     %f     %f \n", node->index, node->min, node->max);
+  if (node->next != NULL)
+    print_list(node->next);
+}*/
 
 particleBox fitParticle(particleBox** box, particle star){
 
@@ -77,6 +73,9 @@ particleBox fitParticle(particleBox** box, particle star){
 
   if((**box).star == NULL){
     (**box).mass += star.mass;
+    (**box).centerOfMassX = abs((**box).centerOfMassX-star.posX)*0.5;
+    (**box).centerOfMassY = abs((**box).centerOfMassX-star.posX)*0.5;
+
 
     if(star.posX < (**box).x && star.posY > (**box).y){
       particleBox tempBox = fitParticle(&(**box).nw, star);
@@ -109,18 +108,20 @@ particleBox fitParticle(particleBox** box, particle star){
     fitParticle(box, *oldStar);
     (**box).mass += star.mass;
   }
-  return **box;
+}
+
+particleBox calcForce(particle star, particleBox box){
+  if(box.star != NULL){
+    
+  }
 }
 
 // ./galsim 2 input/cicles_N_2.gal 500 1e-5 0.1 0
 int main(int argc, char* argv[]){
-  printf("adihfihfiw %d", argc);
-  /*
-  if (argc != 6){
+  if (argc != 7){
       printf("Wrong number of input arguments\n");
       return 1;
-  }*/
-  printf("hej");
+  }
   /*
   
   
@@ -141,19 +142,21 @@ int main(int argc, char* argv[]){
   printf("Error while opening the file.\n");
   return 1;
   }
-  printf("%s", "hej");
+  
   particle *array = read_particle(N, fp1);
 
   particleBox *root = NULL;
   (*root).mass = 0;
   (*root).x = 0.5;
   (*root).y = 0.5;
-  printf("%s", "hej");
+  (*root).centerOfMassX = 0.5;
+  (*root).centerOfMassY = 0.5;
+
   for(int i =0; i<N; i++){
     fitParticle(&root, array[i]);
   }
-  printf("%s", "hej");
-  print_stars(root);
+
+
 
   return 0;
 }
