@@ -80,36 +80,34 @@ void fitParticle(particleBox** box, particle star){
     (**box).mass += star.mass;
     //(**box).centerOfMassX = abs((**box).centerOfMassX-star.posX)*0.5;
     //(**box).centerOfMassY = abs((**box).centerOfMassX-star.posX)*0.5;
-    printf("Star: x: %f y: %f\n", star.posX, star.posY);
-    particleBox tempBox;
     if(star.posX <= (**box).x && star.posY > (**box).y){
       printf("nw\n");
       fitParticle(&(**box).nw, star);    
-      (**box).nw = &tempBox;
-      (*box)->nw->x = (**box).x*0.5;
-      (*box)->nw->y = (**box).y*1.5;
-
+      (**box).nw->x = (**box).x*0.5;
+      (**box).nw->y = (**box).y*1.5;
+      printf("Box x: %f y: %f\n", (**box).nw->x, (**box).nw->y);
       }else if(star.posX > (**box).x && star.posY > (**box).y){
         printf("ne\n");
-        printf("x: %f y: %f \n", (**box).x, (**box).y);
         fitParticle(&(**box).ne, star);
-        (**box).ne = &tempBox;
-        (*box)->ne->x = (**box).x*1.5;
-        (*box)->ne->y = (**box).y*1.5;
-
+        (**box).ne->x = (**box).x*1.5;
+        (**box).ne->y = (**box).y*1.5;
+        printf("Box x: %f y: %f\n", (**box).ne->x, (**box).ne->y);
       }else if(star.posX <= (**box).x && star.posY <= (**box).y){
         printf("sw\n");
         fitParticle(&(**box).sw, star);
-        (*box)->se->x = (**box).x*0.5;
-        (*box)->sw->y = (**box).y*0.5;
+        (**box).sw->x = (**box).x*0.5;
+        (**box).sw->y = (**box).y*0.5;
+        printf("Box x: %f y: %f\n", (**box).sw->x, (**box).sw->y);
       }else if(star.posX > (**box).x && star.posY <= (**box).y){
         printf("se\n");
         fitParticle(&(**box).se, star);
-        (*box)->se->x = (**box).x*1.5;
-        (*box)->se->y = (**box).y*0.5;
+        (**box).se->x = (**box).x*1.5;
+        (**box).se->y = (**box).y*0.5;
+        printf("Box x: %f y: %f\n", (**box).se->x, (**box).se->y);
       }
-      printf("Box: x: %f y: %f \n", tempBox.x, tempBox.y);
+      
   }else{
+    printf("hej\n");
     particle *oldStar = (**box).star;
     (**box).star = NULL;
     fitParticle(box, star);
@@ -160,13 +158,17 @@ int main(int argc, char* argv[]){
   (*root).mass = 0;
   (*root).x = 0.5;
   (*root).y = 0.5;
+  (*root).star = NULL;
 
   (*root).centerOfMassX = 0.5;
   (*root).centerOfMassY = 0.5;
 
-  for(int i =0; i<2; i++){
+  for(int i =0; i<3; i++){
+    printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i].posX, array[i].posY, array[i].mass);
     fitParticle(&root, array[i]);
   }
-  print_stars(root);
+  //print_stars(root);
   return 0;
 }
+
+//./galsim 4 input_data/circles_N_4.gal 500 1e-5 0.1 0
