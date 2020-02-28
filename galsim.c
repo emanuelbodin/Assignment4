@@ -52,47 +52,54 @@ particle * read_particle(int N, FILE *fp1) {
   fclose(fp1);
   return array;
 }
+/*
+void print_starts(particleBox *box) {
+  if (box == NULL) printf("No stars! \n");
+  if (box != NULL) printf("%d     %f     %f \n", node->index, node->min, node->max);
+  if (node->next != NULL)
+    print_list(node->next);
+}*/
 
-particleBox* fitParticle(particleBox** box, particle star){
+particleBox fitParticle(particleBox** box, particle star){
 
   if(box == NULL){
     particleBox newBox;
     newBox.mass = star.mass;
     newBox.star = &star;
-    return &newBox;
+    return newBox;
   }
 
   if((**box).star == NULL){
 
     if(star.posX < (**box).x && star.posY > (**box).y){
-      particleBox *tempBox = fitParticle((**box).nw, star);
-      (**box).nw = tempBox;
-      (*tempBox).x = (**box).x*0.5;
-      (*tempBox).y = (**box).y*1.5;
+      particleBox tempBox = fitParticle(&(**box).nw, star);
+      (**box).nw = &tempBox;
+      (tempBox).x = (**box).x*0.5;
+      (tempBox).y = (**box).y*1.5;
 
       }else if(star.posX > (**box).x && star.posY < (**box).y){
-        particleBox *tempBox = fitParticle((**box).nw, star);
-        (**box).ne = tempBox;
-        (*tempBox).x = (**box).x*0.5;
-        (*tempBox).y = (**box).y*1.5;
+        particleBox tempBox = fitParticle(&(**box).ne, star);
+        (**box).ne = &tempBox;
+        (tempBox).x = (**box).x*0.5;
+        (tempBox).y = (**box).y*1.5;
 
       }else if(star.posX < (**box).x && star.posY < (**box).y){
-        particleBox *tempBox = fitParticle((**box).nw, star);
-        (**box).sw = tempBox;
-        (*tempBox).x = (**box).x*0.5;
-        (*tempBox).y = (**box).y*1.5;
+        particleBox tempBox = fitParticle(&(**box).sw, star);
+        (**box).sw = &tempBox;
+        (tempBox).x = (**box).x*0.5;
+        (tempBox).y = (**box).y*1.5;
 
       }else if(star.posX > (**box).x && star.posY > (**box).y){
-        particleBox *tempBox = fitParticle((**box).nw, star);
-        (**box).sw = tempBox;
-        (*tempBox).x = (**box).x*0.5;
-        (*tempBox).y = (**box).y*1.5;
+        particleBox tempBox = fitParticle(&(**box).se, star);
+        (**box).sw = &tempBox;
+        (tempBox).x = (**box).x*0.5;
+        (tempBox).y = (**box).y*1.5;
       }
   }else{
     particle *oldStar = (**box).star;
     (**box).star = NULL;
-    fitParticle(&box, star);
-    fitParticle(&box, *oldStar);
+    fitParticle(box, star);
+    fitParticle(box, *oldStar);
   }
 }
 
@@ -102,19 +109,22 @@ int main(int argc, char* argv[]){
       printf("Wrong number of input arguments\n");
       return 1;
   }
-  int N = atoi(argv[1]);
-  char* filename = argv[2];
+  /*
+  
+  
   int n_steps = atoi(argv[3]);
   double delta_t = atof(argv[4]);
   double theta_max = atof(argv[5]);
   int graphics = atoi(argv[6]);
 
   printf("Command line arguments given: %d, %s, %d, %f, %f, %d \n", N, filename, n_steps, delta_t, theta_max, graphics);
-  FILE *fp1, *fp2;
-  fp1 = fopen(filename, "rb");
   const double e0 = 0.001;
   const double G = 100.0 / N;
-
+  */
+ FILE *fp1;
+ int N = atoi(argv[1]);
+ char* filename = argv[2];
+  fp1 = fopen(filename, "rb");
   if (fp1 == NULL){
   printf("Error while opening the file.\n");
   return 1;
@@ -122,14 +132,15 @@ int main(int argc, char* argv[]){
   
   particle *array = read_particle(N, fp1);
 
-  particleBox root;
-  root.mass = 0;
-  root.x = 0.5;
-  root.y = 0.5;
+  particleBox *root = NULL;
+  (*root).mass = 0;
+  (*root).x = 0.5;
+  (*root).y = 0.5;
 
   for(int i =0; i<N; i++){
     fitParticle(&root, array[i]);
   }
+
 
 
   return 0;
