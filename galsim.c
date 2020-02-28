@@ -71,12 +71,11 @@ void print_stars(particleBox *box) {
 void fitParticle(particleBox** box, particle star){
   if(*box == NULL){
     printf("Adding node \n");
-    particleBox *newBox = (particleBox*)malloc(sizeof(particleBox));
-    (*newBox).mass = star.mass;
-    (*newBox).star = &star;
-    return *newBox;
+    *box = (particleBox*)malloc(sizeof(particleBox));
+    (**box).mass = star.mass;
+    (**box).star = &star;
   }
-  if((**box).star == NULL){
+  else if((**box).star == NULL){
     printf("Found parent node\n");
     (**box).mass += star.mass;
     //(**box).centerOfMassX = abs((**box).centerOfMassX-star.posX)*0.5;
@@ -85,31 +84,29 @@ void fitParticle(particleBox** box, particle star){
     particleBox tempBox;
     if(star.posX <= (**box).x && star.posY > (**box).y){
       printf("nw\n");
-      tempBox = fitParticle(&(**box).nw, star);    
+      fitParticle(&(**box).nw, star);    
       (**box).nw = &tempBox;
-      (tempBox).x = (**box).x*0.5;
-      (tempBox).y = (**box).y*1.5;
+      (*box)->nw->x = (**box).x*0.5;
+      (*box)->nw->y = (**box).y*1.5;
 
       }else if(star.posX > (**box).x && star.posY > (**box).y){
         printf("ne\n");
         printf("x: %f y: %f \n", (**box).x, (**box).y);
-        tempBox = fitParticle(&(**box).ne, star);
+        fitParticle(&(**box).ne, star);
         (**box).ne = &tempBox;
-        (tempBox).x = (**box).x*1.5;
-        (tempBox).y = (**box).y*1.5;
+        (*box)->ne->x = (**box).x*1.5;
+        (*box)->ne->y = (**box).y*1.5;
 
       }else if(star.posX <= (**box).x && star.posY <= (**box).y){
         printf("sw\n");
-        tempBox = fitParticle(&(**box).sw, star);
-        (**box).sw = &tempBox;
-        (tempBox).x = (**box).x*0.5;
-        (tempBox).y = (**box).y*0.5;
+        fitParticle(&(**box).sw, star);
+        (*box)->se->x = (**box).x*0.5;
+        (*box)->sw->y = (**box).y*0.5;
       }else if(star.posX > (**box).x && star.posY <= (**box).y){
         printf("se\n");
-        tempBox = fitParticle(&(**box).se, star);
-        (**box).se = &tempBox;
-        (tempBox).x = (**box).x*1.5;
-        (tempBox).y = (**box).y*0.5;
+        fitParticle(&(**box).se, star);
+        (*box)->se->x = (**box).x*1.5;
+        (*box)->se->y = (**box).y*0.5;
       }
       printf("Box: x: %f y: %f \n", tempBox.x, tempBox.y);
   }else{
@@ -127,7 +124,7 @@ particleBox calcForce(particle star, particleBox box){
   }
 }
 
-// ./galsim 2 input/cicles_N_2.gal 500 1e-5 0.1 0
+// ./galsim 2 input_data/circles_N_2.gal 500 1e-5 0.1 0
 int main(int argc, char* argv[]){  
   if (argc != 7){
       printf("Wrong number of input arguments\n");
@@ -167,7 +164,7 @@ int main(int argc, char* argv[]){
   (*root).centerOfMassX = 0.5;
   (*root).centerOfMassY = 0.5;
 
-  for(int i =0; i<N; i++){
+  for(int i =0; i<2; i++){
     fitParticle(&root, array[i]);
   }
   print_stars(root);
