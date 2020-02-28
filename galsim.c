@@ -70,7 +70,8 @@ particleBox fitParticle(particleBox** box, particle star){
   }
 
   if((**box).star == NULL){
-    
+    (**box).mass = star.mass;
+
     if(star.posX < (**box).x && star.posY > (**box).y){
       particleBox tempBox = fitParticle(&(**box).nw, star);
       (**box).nw = &tempBox;
@@ -80,27 +81,26 @@ particleBox fitParticle(particleBox** box, particle star){
       }else if(star.posX > (**box).x && star.posY < (**box).y){
         particleBox tempBox = fitParticle(&(**box).ne, star);
         (**box).ne = &tempBox;
-        (tempBox).x = (**box).x*0.5;
+        (tempBox).x = (**box).x*1.5;
         (tempBox).y = (**box).y*1.5;
 
       }else if(star.posX < (**box).x && star.posY < (**box).y){
         particleBox tempBox = fitParticle(&(**box).sw, star);
         (**box).sw = &tempBox;
         (tempBox).x = (**box).x*0.5;
-        (tempBox).y = (**box).y*1.5;
+        (tempBox).y = (**box).y*0.5;
 
       }else if(star.posX > (**box).x && star.posY > (**box).y){
         particleBox tempBox = fitParticle(&(**box).se, star);
-        (**box).sw = &tempBox;
-        (tempBox).x = (**box).x*0.5;
-        (tempBox).y = (**box).y*1.5;
+        (**box).se = &tempBox;
+        (tempBox).x = (**box).x*1.5;
+        (tempBox).y = (**box).y*0.5;
       }
   }else{
     particle *oldStar = (**box).star;
     (**box).star = NULL;
     fitParticle(box, star);
     fitParticle(box, *oldStar);
-    (**box).mass += star.mass;
   }
 }
 
