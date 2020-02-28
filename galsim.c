@@ -100,6 +100,7 @@ particleBox fitParticle(particleBox** box, particle star){
     (**box).star = NULL;
     fitParticle(box, star);
     fitParticle(box, *oldStar);
+    (**box).mass += star.mass;
   }
 }
 
