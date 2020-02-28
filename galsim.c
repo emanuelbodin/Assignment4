@@ -70,7 +70,7 @@ particleBox fitParticle(particleBox** box, particle star){
   }
 
   if((**box).star == NULL){
-
+    
     if(star.posX < (**box).x && star.posY > (**box).y){
       particleBox tempBox = fitParticle(&(**box).nw, star);
       (**box).nw = &tempBox;
