@@ -11,16 +11,16 @@ typedef struct _particle
   double velX;
   double velY;
   double b;
-}particle;
+} particle;
 
 typedef struct _particleBox
 {
-  _particleBox *nw;
-  _particleBox* ne;
-  _particleBox* sw;
-  _particleBox* se;
+  struct _particleBox *nw;
+  struct _particleBox *ne;
+  struct _particleBox *sw;
+  struct _particleBox *se;
 
-  particle* star;
+  particle *star;
 
   double x;
   double y;
@@ -37,7 +37,7 @@ particle * read_particle(int N, FILE *fp1) {
         int e = fread(buffer, sizeof(buffer), 1, fp1);
         if(e){
           printf("Error reading file");
-          return 1;
+          return NULL;
         }
         arr[j] = *((double*)buffer);
     }
@@ -53,42 +53,46 @@ particle * read_particle(int N, FILE *fp1) {
   return array;
 }
 
-particleBox fitParticle(particleBox** box, particle star){
+particleBox* fitParticle(particleBox** box, particle star){
 
   if(box == NULL){
     particleBox newBox;
     newBox.mass = star.mass;
-    newBox.star = star;
-    return newBox;
+    newBox.star = &star;
+    return &newBox;
   }
 
   if((**box).star == NULL){
 
     if(star.posX < (**box).x && star.posY > (**box).y){
-      (**box).nw = fitParticle((**box).nw, star);
-      (**box).nw.x = (**box).x*0.5;
-      (**box).nw.y = (**box).y*1.5;
+      particleBox *tempBox = fitParticle((**box).nw, star);
+      (**box).nw = tempBox;
+      (*tempBox).x = (**box).x*0.5;
+      (*tempBox).y = (**box).y*1.5;
 
       }else if(star.posX > (**box).x && star.posY < (**box).y){
-        (**box).ne = fitParticle((**box).nw, star);
-        (**box).ne.x = (**box).x*0.5;
-        (**box).ne.y = (**box).y*1.5;
+        particleBox *tempBox = fitParticle((**box).nw, star);
+        (**box).ne = tempBox;
+        (*tempBox).x = (**box).x*0.5;
+        (*tempBox).y = (**box).y*1.5;
 
       }else if(star.posX < (**box).x && star.posY < (**box).y){
-        (**box).sw = fitParticle((**box).nw, star);
-        (**box).sw.x = (**box).x*0.5;
-        (**box).sw.y = (**box).y*1.5;
+        particleBox *tempBox = fitParticle((**box).nw, star);
+        (**box).sw = tempBox;
+        (*tempBox).x = (**box).x*0.5;
+        (*tempBox).y = (**box).y*1.5;
 
       }else if(star.posX > (**box).x && star.posY > (**box).y){
-        (**box).se = fitParticle((**box).nw, star);
-        (**box).se.x = (**box).x*0.5;
-        (**box).se.y = (**box).y*1.5;
+        particleBox *tempBox = fitParticle((**box).nw, star);
+        (**box).sw = tempBox;
+        (*tempBox).x = (**box).x*0.5;
+        (*tempBox).y = (**box).y*1.5;
       }
   }else{
-    particle oldStar = (**box).star;
+    particle *oldStar = (**box).star;
     (**box).star = NULL;
     fitParticle(&box, star);
-    fitParticle(&box, oldStar);
+    fitParticle(&box, *oldStar);
   }
 }
 
