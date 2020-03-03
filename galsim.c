@@ -24,35 +24,54 @@ typedef struct _particleBox
 
   double x;
   double y;
+  double side;
 
   double mass;
   double centerOfMassX;
   double centerOfMassY;
+
+  int isEmpty;
+  int isLeaf;
 } particleBox;
 
-particle * read_particle(int N, FILE *fp1) {
-  unsigned char buffer[8];
-  double arr[6];
-  particle *array = malloc(N * sizeof(particle));
+particle ** read_particle(int N, char * filename) {
+  FILE* file = fopen(filename, "rb");
+  double * buffer = (double*)malloc(sizeof(double)*6*N);
+
+  int readOk = fread(buffer, sizeof(double)*6*N, 1, file);
+
+  fclose(file);
+
+  if(readOk != 1){
+    printf("Error reading file");
+    return NULL;
+  }
+  particle **array = (particle**)malloc(N * sizeof(particle*));
+
+
   for(int i = 0; i<N; i++){
-    for(int j = 0; j<6; j++){
-        int e = fread(buffer, sizeof(buffer), 1, fp1);
-        if(!e){
-          printf("Error reading file!\n");
-          return NULL;
-        }
-        arr[j] = *((double*)buffer);
-    }
-    array[i].posX = arr[0];
-    array[i].posY = arr[1];
-    array[i].mass = arr[2];
-    array[i].velX = arr[3];
-    array[i].velY = arr[4];
-    array[i].b = arr[5];
+    array[i] = (particle*)malloc(sizeof(particle));
+  }
+  int offset = 0;
+  for(int i = 0; i<N; i++){
+    array[i]->posX = *(buffer+offset);
+    offset++;
+    array[i]->posY = *(buffer+offset);
+    offset++;
+    array[i]->mass = *(buffer+offset);
+    offset++;
+    array[i]->velX = *(buffer+offset);
+    offset++;
+    array[i]->velY = *(buffer+offset);
+    offset++;
+    array[i]->b = *(buffer+offset);
+    offset++;
   }
 
-  fclose(fp1);
+  free(buffer);
+  buffer = NULL;
   return array;
+
 }
 
 void print_stars(particleBox *box) {
@@ -68,59 +87,83 @@ void print_stars(particleBox *box) {
     print_stars((*box).sw);
 }
 
+particleBox * createBox(double x, double y, double side){
+  particleBox *box;
+
+  box = malloc(sizeof(particleBox));
+
+  box->mass = 0;
+  box->centerOfMassX = 0;
+  box->centerOfMassY = 0;
+
+  box->x = x;
+  box->y = y;
+  box->side = side;
+
+  box->star = NULL;
+  box->isEmpty = 1;
+  box->isLeaf = 1;
+
+
+  return box;
+}
+
 void fitParticle(particleBox** box, particle star){
-  if(*box == NULL){
-    printf("Adding node \n");
-    *box = (particleBox*)malloc(sizeof(particleBox));
-    (**box).mass = star.mass;
+  if((**box).isEmpty == 1){
     (**box).star = &star;
+
+    (**box).isEmpty = 0;
+    (**box).isLeaf = 1;
   }
-  else if((**box).star == NULL){
-    printf("Found parent node\n");
-    (**box).mass += star.mass;
+  else if((**box).isLeaf == 1){
+    particle *oldStar = (**box).star;
+    (**box).star = NULL;
+    (**box).isLeaf = 0;
+
+    (**box).nw = createBox((**box).x-(**box).side/4, (**box).y+(**box).side/4, (**box).side/2);
+    (**box).ne = createBox((**box).x+(**box).side/4, (**box).y+(**box).side/4, (**box).side/2);
+    (**box).sw = createBox((**box).x-(**box).side/4, (**box).y-(**box).side/4, (**box).side/2);    
+    (**box).nw = createBox((**box).x+(**box).side/4, (**box).y-(**box).side/4, (**box).side/2);
+
+
+    fitParticle(box, star);
+    fitParticle(box, *oldStar);
+    //(**box).mass += star.mass;
+      
+  }else{
+
+    //(**box).mass += star.mass;
     //(**box).centerOfMassX = abs((**box).centerOfMassX-star.posX)*0.5;
     //(**box).centerOfMassY = abs((**box).centerOfMassX-star.posX)*0.5;
     if(star.posX <= (**box).x && star.posY > (**box).y){
-      printf("nw\n");
+
       fitParticle(&(**box).nw, star);    
-      (**box).nw->x = (**box).x*0.5;
-      (**box).nw->y = (**box).y*1.5;
       printf("Box x: %f y: %f\n", (**box).nw->x, (**box).nw->y);
+
       }else if(star.posX > (**box).x && star.posY > (**box).y){
-        printf("ne\n");
+
         fitParticle(&(**box).ne, star);
-        (**box).ne->x = (**box).x*1.5;
-        (**box).ne->y = (**box).y*1.5;
         printf("Box x: %f y: %f\n", (**box).ne->x, (**box).ne->y);
+
       }else if(star.posX <= (**box).x && star.posY <= (**box).y){
-        printf("sw\n");
+
         fitParticle(&(**box).sw, star);
-        (**box).sw->x = (**box).x*0.5;
-        (**box).sw->y = (**box).y*0.5;
         printf("Box x: %f y: %f\n", (**box).sw->x, (**box).sw->y);
+
       }else if(star.posX > (**box).x && star.posY <= (**box).y){
-        printf("se\n");
+
         fitParticle(&(**box).se, star);
-        (**box).se->x = (**box).x*1.5;
-        (**box).se->y = (**box).y*0.5;
         printf("Box x: %f y: %f\n", (**box).se->x, (**box).se->y);
       }
-      
-  }else{
-    printf("hej\n");
-    particle *oldStar = (**box).star;
-    (**box).star = NULL;
-    fitParticle(box, star);
-    fitParticle(box, *oldStar);
-    (**box).mass += star.mass;
-  }
-}
-
-particleBox calcForce(particle star, particleBox box){
-  if(box.star != NULL){
     
   }
 }
+
+//particleBox calcForce(particle star, particleBox box){
+//  if(box.star != NULL){
+//    
+//  }
+//}
 
 // ./galsim 2 input_data/circles_N_2.gal 500 1e-5 0.1 0
 int main(int argc, char* argv[]){  
@@ -139,33 +182,33 @@ int main(int argc, char* argv[]){
   const double G = 100.0 / N;
   */
 
- FILE *fp1;
  int N = atoi(argv[1]);
  char* filename = argv[2];
-  fp1 = fopen(filename, "rb");
-  if (fp1 == NULL){
-  printf("Error while opening the file.\n");
-  return 1;
-  }
-  particle *array = read_particle(N, fp1);
+  particle **array = read_particle(N, filename);
 
-  for(int i = 0; i<N; i++){
-    printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i].posX, array[i].posY, array[i].mass);
-  }
 
   particleBox *root = (particleBox*)malloc(sizeof(particleBox));
   
   (*root).mass = 0;
   (*root).x = 0.5;
   (*root).y = 0.5;
+  (*root).side = 1;
   (*root).star = NULL;
+
+  (*root).nw = NULL;
+  (*root).nw = NULL;
+  (*root).nw = NULL;
+  (*root).nw = NULL;
+
+  (*root).isEmpty = 1;
+  (*root).isLeaf = 1;
 
   (*root).centerOfMassX = 0.5;
   (*root).centerOfMassY = 0.5;
 
   for(int i =0; i<3; i++){
-    printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i].posX, array[i].posY, array[i].mass);
-    fitParticle(&root, array[i]);
+    printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i]->posX, array[i]->posY, array[i]->mass);
+    fitParticle(&root, *array[i]);
   }
   //print_stars(root);
   return 0;
