@@ -108,52 +108,56 @@ particleBox * createBox(double x, double y, double side){
   return box;
 }
 
-void fitParticle(particleBox** box, particle star){
-  if((**box).isEmpty == 1){
-    (**box).star = &star;
-
-    (**box).isEmpty = 0;
-    (**box).isLeaf = 1;
+void fitParticle(particleBox * box, particle * star){
+  printf("%d %d \n", box->isLeaf, box->isEmpty);
+  printf("hej\n");
+  if(box->isEmpty == 1){
+    printf("is empty leaf\n");
+    box->star = star;
+    box->isEmpty = 0;
+    box->isLeaf = 1;
   }
-  else if((**box).isLeaf == 1){
-    particle *oldStar = (**box).star;
-    (**box).star = NULL;
-    (**box).isLeaf = 0;
+  else if(box->isLeaf == 1){
+    printf("is leaf\n");
+    particle *oldStar = box->star;
+    box->star = NULL;
+    box->isLeaf = 0;
 
-    (**box).nw = createBox((**box).x-(**box).side/4, (**box).y+(**box).side/4, (**box).side/2);
-    (**box).ne = createBox((**box).x+(**box).side/4, (**box).y+(**box).side/4, (**box).side/2);
-    (**box).sw = createBox((**box).x-(**box).side/4, (**box).y-(**box).side/4, (**box).side/2);    
-    (**box).nw = createBox((**box).x+(**box).side/4, (**box).y-(**box).side/4, (**box).side/2);
-
+    box->nw = createBox(box->x-box->side/4, box->y+box->side/4, box->side/2);
+    box->ne = createBox(box->x+box->side/4, box->y+box->side/4, box->side/2);
+    box->sw = createBox(box->x-box->side/4, box->y-box->side/4, box->side/2);    
+    box->nw = createBox(box->x+box->side/4, box->y-box->side/4, box->side/2);
 
     fitParticle(box, star);
-    fitParticle(box, *oldStar);
-    //(**box).mass += star.mass;
+    printf("First completed\n");
+    fitParticle(box, oldStar);
+    //box->mass += star.mass;
       
   }else{
+    printf("in else\n");
 
-    //(**box).mass += star.mass;
-    //(**box).centerOfMassX = abs((**box).centerOfMassX-star.posX)*0.5;
-    //(**box).centerOfMassY = abs((**box).centerOfMassX-star.posX)*0.5;
-    if(star.posX <= (**box).x && star.posY > (**box).y){
+    //box->mass += star.mass;
+    //box->centerOfMassX = abs(box->centerOfMassX-star.posX)*0.5;
+    //box->centerOfMassY = abs(box->centerOfMassX-star.posX)*0.5;
+    if(star->posX <= box->x && star->posY > box->y){
+      printf("nw\n");   
+      fitParticle(box->nw, star);
+      printf("Box x: %f y: %f\n", box->nw->x, box->nw->y);
 
-      fitParticle(&(**box).nw, star);    
-      printf("Box x: %f y: %f\n", (**box).nw->x, (**box).nw->y);
+      }else if(star->posX > box->x && star->posY > box->y){
+        printf("ne\n");
+        fitParticle(box->ne, star);
+        printf("Box x: %f y: %f\n", box->ne->x, box->ne->y);
 
-      }else if(star.posX > (**box).x && star.posY > (**box).y){
+      }else if(star->posX <= box->x && star->posY <= box->y){
+        printf("sw\n");
+        fitParticle(box->sw, star);
+        printf("Box x: %f y: %f\n", box->sw->x, box->sw->y);
 
-        fitParticle(&(**box).ne, star);
-        printf("Box x: %f y: %f\n", (**box).ne->x, (**box).ne->y);
-
-      }else if(star.posX <= (**box).x && star.posY <= (**box).y){
-
-        fitParticle(&(**box).sw, star);
-        printf("Box x: %f y: %f\n", (**box).sw->x, (**box).sw->y);
-
-      }else if(star.posX > (**box).x && star.posY <= (**box).y){
-
-        fitParticle(&(**box).se, star);
-        printf("Box x: %f y: %f\n", (**box).se->x, (**box).se->y);
+      }else if(star->posX > box->x && star->posY <= box->y){
+        printf("ne\n");
+        fitParticle(box->se, star);
+        printf("Box x: %f y: %f\n", box->se->x, box->se->y);
       }
     
   }
@@ -206,9 +210,9 @@ int main(int argc, char* argv[]){
   (*root).centerOfMassX = 0.5;
   (*root).centerOfMassY = 0.5;
 
-  for(int i =0; i<3; i++){
+  for(int i =0; i<N; i++){
     printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i]->posX, array[i]->posY, array[i]->mass);
-    fitParticle(&root, *array[i]);
+    fitParticle(root, array[i]);
   }
   //print_stars(root);
   return 0;
