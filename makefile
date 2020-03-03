@@ -1,7 +1,7 @@
-CFLAGS= -g -pg -Wall -lm -O1
+CFLAGS= -g -pg -Wall -O1
 
 galsim: galsim.o
-	gcc -o galsim galsim.o
+	gcc -o galsim galsim.o -lm
 
 galsim.o: galsim.c 
 	gcc $(CFLAGS) -c galsim.c
