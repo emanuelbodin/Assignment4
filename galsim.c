@@ -274,7 +274,7 @@ int main(int argc, char* argv[]){
   const double G = 100.0 / N;
   
   particle **array = read_particle(N, filename);
-  //printArray(array, N);
+  printArray(array, N);
   for(int i = 0; i<n_steps; i++){
     particleBox *root = (particleBox*)malloc(sizeof(particleBox));
   
@@ -295,7 +295,6 @@ int main(int argc, char* argv[]){
     (*root).centerOfMassX = 0.5;
     (*root).centerOfMassY = 0.5;
     for(int j = 0; j<N; j++){
-    //printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i]->posX, array[i]->posY, array[i]->mass);
       fitParticle(root, array[j]);
     }
 
@@ -320,7 +319,7 @@ int main(int argc, char* argv[]){
     }
   }
   printf("\n");
-  //printArray(array, N);
+  printArray(array, N);
   writeToFile(array, N);
   for (int i = 0; i < N; i++) {
     free(array[i]);
