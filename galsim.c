@@ -10,8 +10,8 @@ typedef struct _particle
   double mass;
   double velX;
   double velY;
-  double Fx, Fy;
   double b;
+  double Fx, Fy;
 } particle;
 
 typedef struct _particleBox
@@ -73,6 +73,16 @@ particle ** read_particle(int N, char * filename) {
   buffer = NULL;
   return array;
 
+}
+
+void writeToFile(particle ** array, int N) {
+  char * filename = "result.gal";
+  FILE * fp;
+  fp = fopen(filename, "wb");
+  for (int i = 0; i < N; i++) {
+    fwrite(array[i], sizeof(double)*6, 1, fp);
+  }
+  fclose(fp);
 }
 
 
@@ -137,7 +147,9 @@ void fitParticle(particleBox * box, particle * star){
       }else if(star->posX > box->x && star->posY <= box->y){
         fitParticle(box->se, star);
       }
-    
+    else {
+      printf("Error when trying to insert particle");
+    }
 
   }
 }
@@ -158,14 +170,14 @@ void calcCenterOfMass(particleBox * box){
   m3 = box->sw->mass;
   m4 = box->se->mass;
 
-  xCenter = (r1*m2 + r2*m2 + r3*m3 + r4*m4)/(m1 + m2 + m3 + m4);
+  xCenter = (r1*m1 + r2*m2 + r3*m3 + r4*m4)/(m1 + m2 + m3 + m4);
 
   r1 = box->nw->centerOfMassY;
   r2 = box->ne->centerOfMassY;
   r3 = box->sw->centerOfMassY;
   r4 = box->se->centerOfMassY;
 
-  yCenter = (r1*m2 + r2*m2 + r3*m3 + r4*m4)/(m1 + m2 + m3 + m4);
+  yCenter = (r1*m1 + r2*m2 + r3*m3 + r4*m4)/(m1 + m2 + m3 + m4);
 
   box->centerOfMassX = xCenter;
   box->centerOfMassY = yCenter;
@@ -198,31 +210,33 @@ void calcMass(particleBox * box){
 }
 
 void calcForce(particle * star, particleBox * box, double thetaMax){
-  double rx, ry;
+  double rx, ry, denom;
   double e0 = 0.001;
-  rx = abs(star->posX - box->centerOfMassX);
-  ry = abs(star->posY - box->centerOfMassY);
+  rx = star->posX - box->centerOfMassX;
+  ry = star->posY - box->centerOfMassY;
   double r = sqrt(rx*rx+ry*ry);
-  if(box->star != star){
-    if(box->isEmpty){
+ // if(box->star != star){
+/*     if(box->isEmpty){
       
-    }
-    else if(box->isLeaf){
-      double denom = (r+e0)*(r+e0)*(r+e0);
+    } */
+     if(box->isLeaf){
+      denom = (r+e0)*(r+e0)*(r+e0);
       star->Fx += star->mass * rx / denom;
       star->Fy += star->mass * ry / denom;
     } 
-    else if (box->side / r <= thetaMax) {
-      double denom = (r+e0)*(r+e0)*(r+e0);
+    else if ((box->side / r) < thetaMax) {
+      denom = (r+e0)*(r+e0)*(r+e0);
       star->Fx += star->mass * rx / denom;
       star->Fy += star->mass * ry / denom;
-    } else {
+    } else if ((box->side / r) > thetaMax) {
       calcForce(star, box->nw, thetaMax);
       calcForce(star, box->ne, thetaMax);
       calcForce(star, box->sw, thetaMax);
       calcForce(star, box->se, thetaMax);
+    } else {
+      printf("Error when calculating force \n");
     }
-  }
+  //}
 }
 
 void deleteBoxes(particleBox * box) {
@@ -239,7 +253,12 @@ void deleteBoxes(particleBox * box) {
   }
 }
 
-// ./galsim 2 input_data/circles_N_2.gal 500 1e-5 0.1 0
+void printArray(particle ** a, int N) {
+  for (int i = 0; i < N; i++) {
+    printf("mass: %f, Xpos: %f, Ypos: %f, b: %f \n", a[i]->mass, a[i]->posX, a[i]->posY, a[i]->b);
+  }
+}
+
 int main(int argc, char* argv[]){  
   if (argc != 7){
       printf("Wrong number of input arguments\n");
@@ -251,54 +270,68 @@ int main(int argc, char* argv[]){
   double delta_t = atof(argv[4]);
   double theta_max = atof(argv[5]);
   int graphics = atoi(argv[6]);
-
   printf("Command line arguments given: %d, %s, %d, %f, %f, %d \n", N, filename, n_steps, delta_t, theta_max, graphics);
   const double G = 100.0 / N;
   
-
-
   particle **array = read_particle(N, filename);
-
+  //printArray(array, N);
   for(int i = 0; i<n_steps; i++){
-     particleBox *root = (particleBox*)malloc(sizeof(particleBox));
+    particleBox *root = (particleBox*)malloc(sizeof(particleBox));
   
-  (*root).mass = 0;
-  (*root).x = 0.5;
-  (*root).y = 0.5;
-  (*root).side = 1;
-  (*root).star = NULL;
+    (*root).mass = 0;
+    (*root).x = 0.5;
+    (*root).y = 0.5;
+    (*root).side = 1;
+    (*root).star = NULL;
 
-  (*root).nw = NULL;
-  (*root).nw = NULL;
-  (*root).nw = NULL;
-  (*root).nw = NULL;
+    (*root).nw = NULL;
+    (*root).nw = NULL;
+    (*root).nw = NULL;
+    (*root).nw = NULL;
 
-  (*root).isEmpty = 1;
-  (*root).isLeaf = 1;
+    (*root).isEmpty = 1;
+    (*root).isLeaf = 1;
 
-  (*root).centerOfMassX = 0.5;
-  (*root).centerOfMassY = 0.5;
-    for(int i =0; i<N; i++){
+    (*root).centerOfMassX = 0.5;
+    (*root).centerOfMassY = 0.5;
+    for(int j = 0; j<N; j++){
     //printf("Particle %d: xpos: %f, ypos: %f, mass: %f \n", i, array[i]->posX, array[i]->posY, array[i]->mass);
-    fitParticle(root, array[i]);
+      fitParticle(root, array[j]);
     }
 
     calcMass(root);
-    for(int i =0; i<N; i++){
-      array[i]->Fx = 0;
-      array[i]->Fy = 0;
+    for(int j =0; j<N; j++){
+      array[j]->Fx = 0;
+      array[j]->Fy = 0;
 
-      calcForce(array[i], root, theta_max);
+      calcForce(array[j], root, theta_max);
 
-      array[i]->Fx *= -G*array[i]->mass;
-      array[i]->Fy *= -G*array[i]->mass;
+      array[j]->Fx *= -G;
+      array[j]->Fy *= -G;
 
     }
     deleteBoxes(root);
 
-    //print_stars(root);
+    for (int j = 0; j < N; j++) {
+      array[j]->velX += delta_t*(array[j]->Fx);
+      array[j]->velY += delta_t*(array[j]->Fy);
+      array[j]->posX += delta_t*array[j]->velX;
+      array[j]->posY += delta_t*array[j]->velY;
+    }
   }
+  printf("\n");
+  //printArray(array, N);
+  writeToFile(array, N);
+  for (int i = 0; i < N; i++) {
+    free(array[i]);
+    array[i] = NULL;
+  }
+  free(array);
+  array = NULL;
   return 0;
 }
 
 //./galsim 4 input_data/circles_N_4.gal 500 1e-5 0.1 0
+//./galsim 10 input_data/ellipse_N_00010.gal 200 1e-5 0.1 0
+
+//./compare_gal_files 10 ../result.gal ../ref_output_data/ellipse_N_00010_after200steps.gal

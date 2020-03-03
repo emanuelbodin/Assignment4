@@ -1,4 +1,4 @@
-CFLAGS= -g -pg -Wall -O1
+CFLAGS= -g -pg -Wall -O3
 
 galsim: galsim.o
 	gcc -o galsim galsim.o -lm
