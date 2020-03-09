@@ -11,7 +11,7 @@ typedef struct _particle
   double velX;
   double velY;
   double b;
-  double Fx, Fy;
+  double ax, ay;
 } particle;
 
 typedef struct _particleBox
@@ -119,16 +119,19 @@ void fitParticle(particleBox * box, particle * star){
   }
   else if(box->isLeaf == 1){
     particle *oldStar = box->star;
+    
+
+    box->nw = createBox(box->x - box->side/4, box->y + box->side/4, box->side/2);
+    box->ne = createBox(box->x + box->side/4, box->y + box->side/4, box->side/2);
+    box->sw = createBox(box->x - box->side/4, box->y - box->side/4, box->side/2);    
+    box->se = createBox(box->x + box->side/4, box->y - box->side/4, box->side/2);
+
     box->star = NULL;
     box->isLeaf = 0;
 
-    box->nw = createBox(box->x-box->side/4, box->y+box->side/4, box->side/2);
-    box->ne = createBox(box->x+box->side/4, box->y+box->side/4, box->side/2);
-    box->sw = createBox(box->x-box->side/4, box->y-box->side/4, box->side/2);    
-    box->se = createBox(box->x+box->side/4, box->y-box->side/4, box->side/2);
+    fitParticle(box, oldStar);
 
     fitParticle(box, star);
-    fitParticle(box, oldStar);
     //box->mass += star.mass;
       
   }else{
@@ -139,14 +142,21 @@ void fitParticle(particleBox * box, particle * star){
     //box->centerOfMassX = abs(box->centerOfMassX-star.posX)*0.5;
     //box->centerOfMassY = abs(box->centerOfMassX-star.posX)*0.5;
     if(star->posX <= box->x && star->posY > box->y){
+
       fitParticle(box->nw, star);
-      }else if(star->posX > box->x && star->posY > box->y){
-        fitParticle(box->ne, star);
-      }else if(star->posX <= box->x && star->posY <= box->y){
-        fitParticle(box->sw, star);
-      }else if(star->posX > box->x && star->posY <= box->y){
-        fitParticle(box->se, star);
-      }
+
+    }else if(star->posX > box->x && star->posY > box->y){
+
+      fitParticle(box->ne, star);
+
+    }else if(star->posX <= box->x && star->posY <= box->y){
+
+      fitParticle(box->sw, star);
+
+    }else if(star->posX > box->x && star->posY <= box->y){
+      
+      fitParticle(box->se, star);
+    }
     else {
       printf("Error when trying to insert particle");
     }
@@ -156,6 +166,7 @@ void fitParticle(particleBox * box, particle * star){
 
 
 void calcCenterOfMass(particleBox * box){
+  
   double r1, r2, r3, r4;
   double m1, m2, m3, m4;
   double xCenter, yCenter;
@@ -181,13 +192,47 @@ void calcCenterOfMass(particleBox * box){
 
   box->centerOfMassX = xCenter;
   box->centerOfMassY = yCenter;
+
+}
+
+void insert_mass(particleBox *n) {
+	if (n->isEmpty) {
+		// do nothing
+	} else if (n->isEmpty) {
+		n->mass = n->star->mass;
+		n->centerOfMassX = n->star->posX;
+		n->centerOfMassY = n->star->posY;
+	} else {
+		insert_mass(n->nw);
+		insert_mass(n->ne);
+		insert_mass(n->sw);
+		insert_mass(n->se);
+		
+		// The mass of each parent node is the sum of the masses of its children
+		double mass = n->nw->mass + n->ne->mass + n->sw->mass + n->se->mass;
+		n->mass += mass;
+		
+		// "x*m" for each child
+		double pos_m_nw = n->nw->centerOfMassX*n->nw->mass;
+		double pos_m_ne = n->ne->centerOfMassX*n->ne->mass;
+		double pos_m_sw = n->sw->centerOfMassX*n->sw->mass;
+		double pos_m_se = n->se->centerOfMassX*n->se->mass;
+		n->centerOfMassX = (pos_m_nw + pos_m_ne + pos_m_sw + pos_m_se)/mass;
+		
+		pos_m_nw = n->nw->centerOfMassY*n->nw->mass;
+		pos_m_ne = n->ne->centerOfMassY*n->ne->mass;
+		pos_m_sw = n->sw->centerOfMassY*n->sw->mass;
+		pos_m_se = n->se->centerOfMassY*n->se->mass;
+		n->centerOfMassY = (pos_m_nw + pos_m_ne + pos_m_sw + pos_m_se)/mass;
+		
+	}
 }
 
 void calcMass(particleBox * box){
   if(box->isEmpty){
-    box->mass = 0;
-    box->centerOfMassX = 0;
-    box->centerOfMassY = 0;
+    //box->mass = 0;
+    //box->centerOfMassX = 0;
+    //box->centerOfMassY = 0;
 
   }else if(box->isLeaf){
     box->mass=box->star->mass;
@@ -200,34 +245,37 @@ void calcMass(particleBox * box){
     calcMass(box->sw);
     calcMass(box->se);
 
+    
+
     box->mass += box->nw->mass;
     box->mass += box->ne->mass;
     box->mass += box->sw->mass;
     box->mass += box->se->mass;
+    
 
     calcCenterOfMass(box);
+    
+
   }
 }
 
 void calcForce(particle * star, particleBox * box, double thetaMax){
   double rx, ry, denom;
-  double e0 = 0.001;
+  double e0 = 1e-3;
   rx = star->posX - box->centerOfMassX;
   ry = star->posY - box->centerOfMassY;
   double r = sqrt(rx*rx+ry*ry);
- // if(box->star != star){
-/*     if(box->isEmpty){
-      
-    } */
-     if(box->isLeaf){
-      denom = (r+e0)*(r+e0)*(r+e0);
-      star->Fx += star->mass * rx / denom;
-      star->Fy += star->mass * ry / denom;
-    } 
-    else if ((box->side / r) < thetaMax) {
-      denom = (r+e0)*(r+e0)*(r+e0);
-      star->Fx += star->mass * rx / denom;
-      star->Fy += star->mass * ry / denom;
+
+  //double dx = box->x-star->posX;
+  //double dy = box->y-star->posY;
+  //double d = sqrt(dx*dx+dy*dy);
+
+  
+
+     if(box->isLeaf || (box->side / r) <= thetaMax){
+      denom = 1/((r+e0)*(r+e0)*(r+e0));
+      star->ax += star->mass * rx*denom;
+      star->ay += star->mass * ry*denom;
     } else if ((box->side / r) > thetaMax) {
       calcForce(star, box->nw, thetaMax);
       calcForce(star, box->ne, thetaMax);
@@ -236,7 +284,31 @@ void calcForce(particle * star, particleBox * box, double thetaMax){
     } else {
       printf("Error when calculating force \n");
     }
-  //}
+}
+
+
+void calc_force(particle *p, particleBox *n, double theta_max) {
+	double rx, ry, r, denom;
+	double e0 = 1e-3;
+	rx = p->posX<-n->centerOfMassX;
+	ry = p->posY-n->centerOfMassY;
+	r = sqrt(rx*rx+ry*ry);
+	if (n->isLeaf) {
+		denom = 1/((r+e0)*(r+e0)*(r+e0));
+		p->ax += n->mass*denom*rx;
+		p->ay += n->mass*denom*ry;
+	} else if ((n->side/r) < theta_max) {
+		denom = 1/((r+e0)*(r+e0)*(r+e0));
+		p->ax += n->mass*denom*rx;
+		p->ay += n->mass*denom*ry;
+	} else if ((n->side/r) > theta_max){
+		calc_force(p, n->nw, theta_max);
+		calc_force(p, n->ne, theta_max);
+		calc_force(p, n->sw, theta_max);
+		calc_force(p, n->se, theta_max);
+	} else {
+		printf("Error in calc_force\n");
+	}
 }
 
 void deleteBoxes(particleBox * box) {
@@ -259,6 +331,108 @@ void printArray(particle ** a, int N) {
   }
 }
 
+void printTree(particleBox * box){
+  if(box->isLeaf){
+    printf("Leaf node: \n");
+    printf("side: %f, posx: %f, posy: %f, COMx: %f, COMy: %f\n", box->side, box->x, box->y, box->centerOfMassX, box->centerOfMassY);
+    if(box->isEmpty){
+      printf("This box is empty\n");
+    }else{
+      printf("This node contains the star: posx: %f, posy: %f, mass: %f\n", box->star->posX, box->star->posY, box->star->mass);
+    }
+    printf("\n");
+  }else{
+    printf("Parent node\n");
+    printf("side: %f, posx: %f, posy: %f, COMx: %f, COMy: %f\n", box->side, box->x, box->y, box->centerOfMassX, box->centerOfMassY);
+    printf("Has children: \n");
+    printf("\n");
+    printTree(box->nw);
+    printTree(box->ne);
+    printTree(box->sw);
+    printTree(box->se);
+    printf("STOP\n");
+  }
+}
+
+particleBox* makeTree(particle **array, int N){
+  particleBox *root;
+  root = malloc(sizeof(particleBox));
+  
+    root->mass = 0;
+    root->x = 0.5;
+    root->y = 0.5;
+    root->side = 1;
+    root->star = NULL;
+
+    root->nw = NULL;
+    root->ne = NULL;
+    root->sw = NULL;
+    root->se = NULL;
+
+    root->isEmpty = 1;
+    root->isLeaf = 1;
+
+    root->centerOfMassX = 0;
+    root->centerOfMassY = 0;
+
+    
+
+    for(int j = 0; j<N; j++){
+      fitParticle(root, array[j]);
+    }
+    return root;
+}
+
+particle** runSimulation(particle **array, int n_steps, double delta_t, int N, double theta_max){
+  double G = (double)100/N;
+  particleBox *root = NULL;
+
+  for(int i = 0; i<=n_steps; i++){
+    root = makeTree(array, N);
+
+    printf("\n");
+
+
+    printf("timestep %d. BEFORE CALC MASS First star values: \n", i);
+    printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
+    printf("\n");
+
+    calcMass(root);
+
+    //printTree(root);
+    printf("timestep %d. First star values: \n", i);
+    printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
+    printf("\n");
+    for(int j =0; j<N; j++){
+      array[j]->ax = 0;
+      array[j]->ay = 0;
+
+      calcForce(array[j], root, theta_max);
+      printf("timestep %d. After calc force\n", i);
+
+      printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
+
+      printf("\n");
+
+      array[j]->ax *= -G;
+      array[j]->ay *= -G;
+
+    }
+    printf("timestep %d. After multiplication with G First star values: \n", i);
+    printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
+    printf("\n");
+    deleteBoxes(root);
+
+    for (int j = 0; j < N; j++) {
+      array[j]->velX += delta_t*(array[j]->ax);
+      array[j]->velY += delta_t*(array[j]->ay);
+      array[j]->posX += delta_t*array[j]->velX;
+      array[j]->posY += delta_t*array[j]->velY;
+    }
+  }
+  return array;
+}
+
 int main(int argc, char* argv[]){  
   if (argc != 7){
       printf("Wrong number of input arguments\n");
@@ -271,53 +445,13 @@ int main(int argc, char* argv[]){
   double theta_max = atof(argv[5]);
   int graphics = atoi(argv[6]);
   printf("Command line arguments given: %d, %s, %d, %f, %f, %d \n", N, filename, n_steps, delta_t, theta_max, graphics);
-  const double G = 100.0 / N;
   
   particle **array = read_particle(N, filename);
+ 
   printArray(array, N);
-  for(int i = 0; i<n_steps; i++){
-    particleBox *root = (particleBox*)malloc(sizeof(particleBox));
-  
-    (*root).mass = 0;
-    (*root).x = 0.5;
-    (*root).y = 0.5;
-    (*root).side = 1;
-    (*root).star = NULL;
 
-    (*root).nw = NULL;
-    (*root).nw = NULL;
-    (*root).nw = NULL;
-    (*root).nw = NULL;
+  array = runSimulation(array, n_steps, delta_t, N, theta_max);
 
-    (*root).isEmpty = 1;
-    (*root).isLeaf = 1;
-
-    (*root).centerOfMassX = 0.5;
-    (*root).centerOfMassY = 0.5;
-    for(int j = 0; j<N; j++){
-      fitParticle(root, array[j]);
-    }
-
-    calcMass(root);
-    for(int j =0; j<N; j++){
-      array[j]->Fx = 0;
-      array[j]->Fy = 0;
-
-      calcForce(array[j], root, theta_max);
-
-      array[j]->Fx *= -G;
-      array[j]->Fy *= -G;
-
-    }
-    deleteBoxes(root);
-
-    for (int j = 0; j < N; j++) {
-      array[j]->velX += delta_t*(array[j]->Fx);
-      array[j]->velY += delta_t*(array[j]->Fy);
-      array[j]->posX += delta_t*array[j]->velX;
-      array[j]->posY += delta_t*array[j]->velY;
-    }
-  }
   printf("\n");
   printArray(array, N);
   writeToFile(array, N);
