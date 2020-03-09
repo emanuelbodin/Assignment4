@@ -67,6 +67,8 @@ particle ** read_particle(int N, char * filename) {
     offset++;
     array[i]->b = *(buffer+offset);
     offset++;
+    array[i]->ax = 0;
+    array[i]->ay = 0;
   }
 
   free(buffer);
@@ -264,7 +266,16 @@ void calcForce(particle * star, particleBox * box, double thetaMax){
   double e0 = 1e-3;
   rx = star->posX - box->centerOfMassX;
   ry = star->posY - box->centerOfMassY;
+
+  printf("IN CALCFORCE COMX: %f, COMY: %f\n", box->centerOfMassX, box-> centerOfMassY);
+  printf("IN CALCFORCE Star POSX: %f, Star POSY: %f\n", star->posX, star->posY);
+  printf("IN CALCFORCE RX: %f, Star RY: %f\n", rx, ry);
+  
+
   double r = sqrt(rx*rx+ry*ry);
+
+  printf("IN CALCFORCE R: %f\n", r);
+	printf("\n");
 
   //double dx = box->x-star->posX;
   //double dy = box->y-star->posY;
@@ -274,8 +285,10 @@ void calcForce(particle * star, particleBox * box, double thetaMax){
 
      if(box->isLeaf || (box->side / r) <= thetaMax){
       denom = 1/((r+e0)*(r+e0)*(r+e0));
-      star->ax += star->mass * rx*denom;
-      star->ay += star->mass * ry*denom;
+      printf("IN CALCFORCE DENOM: %f\n", denom);
+
+      star->ax += box->mass * rx*denom;
+      star->ay += box->mass * ry*denom;
     } else if ((box->side / r) > thetaMax) {
       calcForce(star, box->nw, thetaMax);
       calcForce(star, box->ne, thetaMax);
@@ -290,9 +303,18 @@ void calcForce(particle * star, particleBox * box, double thetaMax){
 void calc_force(particle *p, particleBox *n, double theta_max) {
 	double rx, ry, r, denom;
 	double e0 = 1e-3;
-	rx = p->posX<-n->centerOfMassX;
+	rx = p->posX-n->centerOfMassX;
 	ry = p->posY-n->centerOfMassY;
+
+  printf("IN CALCFORCE COMX: %f, COMY: %f\n", n->centerOfMassX, n-> centerOfMassY);
+  printf("IN CALCFORCE Star POSX: %f, Star POSY: %f\n", p->posX, p->posY);
+  printf("IN CALCFORCE RX: %f, Star RY: %f\n", rx, ry);
+
+
 	r = sqrt(rx*rx+ry*ry);
+
+  printf("IN CALCFORCE R: %f\n", r);
+	printf("\n");
 	if (n->isLeaf) {
 		denom = 1/((r+e0)*(r+e0)*(r+e0));
 		p->ax += n->mass*denom*rx;
@@ -387,7 +409,12 @@ particle** runSimulation(particle **array, int n_steps, double delta_t, int N, d
   double G = (double)100/N;
   particleBox *root = NULL;
 
-  for(int i = 0; i<=n_steps; i++){
+  printf(" BEFORE MAKE TREE MASS BEFORE LOOP. First star values: \n");
+    printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
+    printf("\n");
+    int j;
+
+  for(int i = 0; i<=n_steps-1; i++){
     root = makeTree(array, N);
 
     printf("\n");
@@ -403,12 +430,12 @@ particle** runSimulation(particle **array, int n_steps, double delta_t, int N, d
     printf("timestep %d. First star values: \n", i);
     printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
     printf("\n");
-    for(int j =0; j<N; j++){
+    for(j =0; j<N; j++){
       array[j]->ax = 0;
       array[j]->ay = 0;
 
       calcForce(array[j], root, theta_max);
-      printf("timestep %d. After calc force\n", i);
+      printf(" After calc force star no 1\n");
 
       printf("posX: %f, posY: %f, mass: %f velY: %f, velY: %f, ax: %f, ay: %f\n", array[1]->posX, array[1]->posY, array[1]->mass, array[1]->velX, array[1]->velY, array[1]->ax, array[1]->ay);
 
